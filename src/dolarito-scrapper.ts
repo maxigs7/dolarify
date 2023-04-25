@@ -13,11 +13,12 @@ export class DolaritoScrapper {
     const response: DollarItem[] = [];
 
     (Object.keys(Dollars) as (keyof typeof Dollars)[]).forEach((key: DollarType) => {
-      const value = Dollars[key];
-      const box = this.$(`.chakra-text:contains("${value}")`).closest('.chakra-skeleton').parent();
+      const label = Dollars[key];
+      const box = this.getBox(key);
+      const variation = this.getVariation(box);
       const buy = this.getPrice(box, 'Compra');
       const sell = this.getPrice(box, 'Venta');
-      response.push({ key, label: value, buy, sell });
+      response.push({ key, label, buy, sell, variation });
     });
 
     return response;
@@ -25,7 +26,9 @@ export class DolaritoScrapper {
 
   private getBox(key: DollarType) {
     const value = Dollars[key];
-    return this.$(`.chakra-text:contains("${value}")`).closest('.chakra-skeleton').parent();
+    return this.$(`.chakra-text:contains("${value}")`)
+      .closest('.chakra-wrap__listitem ')
+      .find('> div > div');
   }
 
   private getPrice(box: cheerio.Cheerio, type: string): number {
@@ -37,5 +40,12 @@ export class DolaritoScrapper {
       .find('span:nth-of-type(2)')
       .text();
     return parseFloat(price.replace(',', '.'));
+  }
+
+  private getVariation(box: cheerio.Cheerio): number {
+    const variation = box.find('> div:nth-of-type(1)').find('.chakra-text').text();
+    const noSpecialChars = variation.replace(',', '.').replace(/[^0-9]/, '');
+    console.log(noSpecialChars);
+    return +(parseFloat(noSpecialChars) / 100).toFixed(2);
   }
 }
