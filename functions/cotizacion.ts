@@ -1,6 +1,7 @@
 import { Handler, HandlerEvent, HandlerContext } from '@netlify/functions';
 import axios from 'axios';
 import cheerio from 'cheerio';
+import { DollarItem, DollarType, Dollars } from '../src/models';
 
 const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
   // downloading the target web page
@@ -15,13 +16,13 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
   });
 
   const options = {
-    dolar: event.queryStringParameters?.dolar || 'dolar blue',
+    dolar: event.queryStringParameters?.dolar || DollarType.blue,
   };
 
   // parsing the HTML source of the target web page with Cheerio
   const $ = cheerio.load(axiosResponse.data);
-  const box = $(`.chakra-text:contains("${options.dolar}")`).closest('.chakra-skeleton').parent();
-  const getPrice = (type: string): string =>
+
+  const getPrice = (box: cheerio.Cheerio, type: string): string =>
     box
       .find(`p:contains("${type}")`)
       .closest('.chakra-skeleton')
@@ -30,13 +31,20 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
       .find('span:nth-of-type(2)')
       .text();
 
-  const buy = getPrice('Compra');
-  const sell = getPrice('Venta');
+  const response: DollarItem[] = [];
+
+  (Object.keys(Dollars) as (keyof typeof Dollars)[]).forEach((key: DollarType) => {
+    const value = Dollars[key];
+    const box = $(`.chakra-text:contains("${value}")`).closest('.chakra-skeleton').parent();
+    const buy = getPrice(box, 'Compra');
+    const sell = getPrice(box, 'Venta');
+    response.push({ key, label: value, buy, sell });
+  });
 
   // your server-side functionality
   return {
     statusCode: 200,
-    body: JSON.stringify({ dolar: options.dolar, buy, sell }),
+    body: JSON.stringify(response),
   };
 };
 
