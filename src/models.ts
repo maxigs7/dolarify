@@ -24,4 +24,4 @@ export const Dollars: Record<DollarType, string> = {
   [DollarType.mayorista]: 'dolar mayorista',
 };
 
-export type DollarItem = { key: string; label: string; buy: string; sell: string };
+export type DollarItem = { key: string; label: string; buy: number; sell: number };
